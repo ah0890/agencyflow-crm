@@ -1,0 +1,404 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   AgencyFlow CRM - design tokens
+
+   Dark is the default and the designed-for case. Light is a supported
+   alternative driven by [data-theme="light"] on <html>, and the accent hue is
+   driven by [data-accent] - both are set from Settings > Appearance.
+
+   Every colour in the app comes from these variables. Nothing hard-codes a hex
+   value, which is what keeps the theme switch honest.
+   ========================================================================== */
+
+:root {
+  /* Surfaces: near-black canvas, dark slate cards, one step lighter for wells */
+  --bg: #08090d;
+  --bg-elevated: #0d0f14;
+  --surface: #111319;
+  --surface-2: #171a22;
+  --surface-3: #1d212a;
+  --overlay: rgb(4 5 8 / 0.72);
+
+  /* Borders: quiet by default, one step up for hover and focus */
+  --border: #22262f;
+  --border-strong: #2f343f;
+
+  /* Text */
+  --text: #e9ebf0;
+  --text-muted: #939aab;
+  --text-subtle: #6a7183;
+  --text-inverse: #08090d;
+
+  /* Accent (overridden by [data-accent]) */
+  --accent: #6366f1;
+  --accent-hover: #7679f4;
+  --accent-soft: rgb(99 102 241 / 0.14);
+  --accent-border: rgb(99 102 241 / 0.35);
+  --accent-text: #a5a8fb;
+
+  /* Semantic */
+  --success: #10b981;
+  --success-soft: rgb(16 185 129 / 0.14);
+  --success-text: #4ade9f;
+
+  --warning: #f59e0b;
+  --warning-soft: rgb(245 158 11 / 0.14);
+  --warning-text: #fbbf4c;
+
+  --danger: #ef4444;
+  --danger-soft: rgb(239 68 68 / 0.14);
+  --danger-text: #f87171;
+
+  --info: #38bdf8;
+  --info-soft: rgb(56 189 248 / 0.14);
+  --info-text: #7dd3fc;
+
+  --violet: #a855f7;
+  --violet-soft: rgb(168 85 247 / 0.14);
+  --violet-text: #c084fc;
+
+  --neutral-soft: rgb(148 163 184 / 0.12);
+  --neutral-text: #94a3b8;
+
+  /* Shadows: soft and low-contrast, never a hard drop shadow */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 16px -4px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 24px 48px -12px rgb(0 0 0 / 0.65);
+
+  /* Chart colours.
+     These come from a validated data-viz palette rather than the UI accent:
+     the accent is user-switchable, and chart meaning must not move with it.
+     Single-series charts use --chart-1 only; --chart-2 exists solely for the
+     one genuine two-series case (deals won vs lost). The pair clears CVD and
+     contrast checks against both surfaces. */
+  --chart-1: #3987e5;
+  --chart-1-soft: rgb(57 135 229 / 0.18);
+  --chart-2: #e66767;
+  --chart-grid: #22262f;
+
+  --radius: 0.625rem;
+
+  /* Row padding, switched by Settings > Appearance > Density */
+  --row-py: 0.875rem;
+
+  color-scheme: dark;
+}
+
+[data-accent="cyan"] {
+  --accent: #06b6d4;
+  --accent-hover: #22d3ee;
+  --accent-soft: rgb(6 182 212 / 0.14);
+  --accent-border: rgb(6 182 212 / 0.35);
+  --accent-text: #67e8f9;
+}
+
+[data-accent="violet"] {
+  --accent: #8b5cf6;
+  --accent-hover: #a78bfa;
+  --accent-soft: rgb(139 92 246 / 0.14);
+  --accent-border: rgb(139 92 246 / 0.35);
+  --accent-text: #c4b5fd;
+}
+
+[data-accent="emerald"] {
+  --accent: #10b981;
+  --accent-hover: #34d399;
+  --accent-soft: rgb(16 185 129 / 0.14);
+  --accent-border: rgb(16 185 129 / 0.35);
+  --accent-text: #6ee7b7;
+}
+
+[data-theme="light"] {
+  --bg: #f6f7f9;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f2f4f7;
+  --surface-3: #e9ecf1;
+  --overlay: rgb(15 23 42 / 0.4);
+
+  --border: #e2e6ec;
+  --border-strong: #cbd2dc;
+
+  --text: #131722;
+  --text-muted: #5b6472;
+  --text-subtle: #7c8595;
+  --text-inverse: #ffffff;
+
+  --accent-text: #4f46e5;
+  --success-text: #047857;
+  --warning-text: #b45309;
+  --danger-text: #b91c1c;
+  --info-text: #0369a1;
+  --violet-text: #7e22ce;
+  --neutral-text: #475569;
+
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
+  --shadow-md: 0 4px 16px -4px rgb(15 23 42 / 0.1);
+  --shadow-lg: 0 24px 48px -12px rgb(15 23 42 / 0.18);
+
+  /* Light-surface steps of the same validated chart palette. */
+  --chart-1: #2a78d6;
+  --chart-1-soft: rgb(42 120 214 / 0.16);
+  --chart-2: #e34948;
+  --chart-grid: #e2e6ec;
+
+  color-scheme: light;
+}
+
+[data-density="compact"] {
+  --row-py: 0.5rem;
+}
+
+/* Expose the tokens to Tailwind so `bg-surface`, `text-muted` etc. exist. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+
+  --color-fg: var(--text);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--text-subtle);
+  --color-inverse: var(--text-inverse);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-violet: var(--violet);
+
+  --radius-card: var(--radius);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+}
+
+/* --------------------------------- base ---------------------------------- */
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  background-color: var(--bg);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* A single, consistent focus ring everywhere - keyboard users can always see
+   where they are. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* Scrollbars that match the surface instead of the OS default. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-subtle);
+  background-clip: content-box;
+}
+
+/* ------------------------------- components ------------------------------- */
+
+/* Badge tones. `tone` on an Option maps straight to one of these. */
+.tone-neutral {
+  background: var(--neutral-soft);
+  color: var(--neutral-text);
+}
+.tone-info {
+  background: var(--info-soft);
+  color: var(--info-text);
+}
+.tone-accent {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.tone-success {
+  background: var(--success-soft);
+  color: var(--success-text);
+}
+.tone-warning {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+.tone-danger {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+.tone-violet {
+  background: var(--violet-soft);
+  color: var(--violet-text);
+}
+
+/* Dot variants for the Kanban column headers and legends. */
+.dot-neutral {
+  background: var(--neutral-text);
+}
+.dot-info {
+  background: var(--info);
+}
+.dot-accent {
+  background: var(--accent);
+}
+.dot-success {
+  background: var(--success);
+}
+.dot-warning {
+  background: var(--warning);
+}
+.dot-danger {
+  background: var(--danger);
+}
+.dot-violet {
+  background: var(--violet);
+}
+
+/* -------------------------------- motion --------------------------------- */
+
+@keyframes af-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes af-scale-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes af-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-fade-in {
+  animation: af-fade-in 0.2s ease-out both;
+}
+
+.animate-scale-in {
+  animation: af-scale-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Skeleton placeholder used by every loading.tsx */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.045),
+    transparent
+  );
+  animation: af-shimmer 1.6s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* -------------------------------- recharts -------------------------------- */
+
+.recharts-cartesian-grid line {
+  stroke: var(--chart-grid);
+}
+
+.recharts-text {
+  fill: var(--text-subtle);
+  font-size: 11px;
+}
+
+.recharts-surface:focus,
+.recharts-wrapper:focus {
+  outline: none;
+}
+
+/* Hide the number-input spinners; amounts are typed, not stepped. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Make the native date/time picker icon visible on dark surfaces. */
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+:root:not([data-theme="light"])
+  input[type="date"]::-webkit-calendar-picker-indicator,
+:root:not([data-theme="light"])
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}

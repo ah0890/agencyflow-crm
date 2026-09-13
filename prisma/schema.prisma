@@ -1,0 +1,288 @@
+// ---------------------------------------------------------------------------
+// AgencyFlow CRM - data model
+//
+// SQLite is used so the project runs with zero database setup. SQLite has no
+// native ENUM type, so status/priority style columns are stored as String and
+// constrained in application code by the Zod schemas in src/lib/validation and
+// the constants in src/lib/constants.ts. That keeps one source of truth and
+// makes a later move to Postgres a provider swap rather than a rewrite.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// A member of the agency. Owns leads, manages clients, runs projects.
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("SALES") // OWNER | ADMIN | SALES | PROJECT_MANAGER
+  jobTitle     String?
+  avatarColor  String   @default("#6366f1")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  leads              Lead[]
+  managedClients     Client[]
+  deals              Deal[]
+  managedProjects    Project[]
+  projectMemberships ProjectMember[]
+  tasks              Task[]
+  followUps          FollowUp[]
+  activities         Activity[]
+  notifications      Notification[]
+
+  @@index([email])
+}
+
+/// An inbound or outbound prospect that has not become a paying client yet.
+model Lead {
+  id             String    @id @default(cuid())
+  name           String
+  company        String
+  email          String
+  phone          String?
+  source         String    @default("WEBSITE") // see LEAD_SOURCES
+  industry       String?
+  status         String    @default("NEW") // see LEAD_STATUSES
+  score          Int       @default(50) // 0-100 qualification score
+  estimatedValue Float     @default(0)
+  notes          String?
+  nextFollowUpAt DateTime?
+  convertedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  /// Set when the lead is converted, linking the prospect to the client record.
+  convertedClientId String?
+  convertedClient   Client? @relation("LeadConversion", fields: [convertedClientId], references: [id], onDelete: SetNull)
+
+  deals      Deal[]
+  followUps  FollowUp[]
+  activities Activity[]
+
+  @@index([status])
+  @@index([ownerId])
+  @@index([nextFollowUpAt])
+}
+
+/// A company the agency actively bills work to.
+model Client {
+  id          String   @id @default(cuid())
+  name        String
+  contactName String
+  email       String
+  phone       String?
+  website     String?
+  industry    String?
+  status      String   @default("ACTIVE") // see CLIENT_STATUSES
+  address     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  accountManagerId String
+  accountManager   User   @relation(fields: [accountManagerId], references: [id])
+
+  projects    Project[]
+  deals       Deal[]
+  followUps   FollowUp[]
+  activities  Activity[]
+  sourceLeads Lead[]     @relation("LeadConversion")
+
+  @@index([status])
+  @@index([accountManagerId])
+}
+
+/// A revenue opportunity moving through the sales pipeline (the Kanban board).
+model Deal {
+  id                String    @id @default(cuid())
+  title             String
+  company           String
+  contactName       String
+  value             Float     @default(0)
+  stage             String    @default("NEW") // see DEAL_STAGES
+  probability       Int       @default(10) // 0-100
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+  notes             String?
+  /// Sort order inside a Kanban column.
+  position          Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  activities Activity[]
+
+  @@index([stage])
+  @@index([ownerId])
+}
+
+/// A piece of delivery work sold to a client.
+model Project {
+  id          String    @id @default(cuid())
+  name        String
+  type        String    @default("WEB_DEVELOPMENT") // see PROJECT_TYPES
+  status      String    @default("PLANNING") // see PROJECT_STATUSES
+  priority    String    @default("MEDIUM") // see PRIORITIES
+  description String?
+  budget      Float     @default(0)
+  progress    Int       @default(0) // 0-100
+  startDate   DateTime
+  deadline    DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  managerId String
+  manager   User   @relation(fields: [managerId], references: [id])
+
+  members    ProjectMember[]
+  tasks      Task[]
+  activities Activity[]
+
+  @@index([status])
+  @@index([clientId])
+}
+
+/// Join table: which agency users are staffed on which project.
+model ProjectMember {
+  id        String   @id @default(cuid())
+  role      String   @default("CONTRIBUTOR")
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+/// A unit of work, usually inside a project.
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("TODO") // see TASK_STATUSES
+  priority    String    @default("MEDIUM") // see PRIORITIES
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assigneeId String?
+  assignee   User?   @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  activities Activity[]
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([dueDate])
+}
+
+/// A scheduled touchpoint with a lead or a client.
+model FollowUp {
+  id          String    @id @default(cuid())
+  title       String
+  type        String    @default("CALL") // see FOLLOWUP_TYPES
+  notes       String?
+  dueAt       DateTime
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  outcome     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  activities Activity[]
+
+  @@index([dueAt])
+  @@index([completed])
+}
+
+/// Append-only audit trail. Every service-layer write records one of these,
+/// which is what powers both the global and the per-record timelines.
+model Activity {
+  id      String @id @default(cuid())
+  type    String // see ACTIVITY_TYPES
+  message String
+  /// Human-readable detail, e.g. "Qualified -> Proposal Sent".
+  detail    String?
+  createdAt DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  dealId String?
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  taskId String?
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  followUpId String?
+  followUp   FollowUp? @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([type])
+}
+
+/// In-app notification targeted at a single user.
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  type      String   @default("SYSTEM") // see NOTIFICATION_TYPES
+  level     String   @default("INFO") // INFO | SUCCESS | WARNING | DANGER
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
